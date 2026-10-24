@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const asyncHandler = require('../middleware/asyncHandler');
@@ -17,7 +17,6 @@ router.post('/login', asyncHandler(async (req, res) => {
     const user = await User.findOne({ nama });
     const cocok = user ? await bcrypt.compare(password, user.password) : false;
 
-    // pesan sengaja disamakan supaya orang tidak bisa menebak username yang ada
     if (!cocok) {
         return res.status(401).json({
             sukses: false,
