@@ -1,21 +1,33 @@
 const express = require('express');
+const connectDB = require('../config/db');
+const auth = require('../middleware/auth');
+const errorHandler = require('../middleware/errorHandler');
+
 const app = express();
 
-app.use(express.json());
+app.set('json spaces', 2);
+app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-require('../config/db');
+// Pastikan database terhubung sebelum route /api diproses
+app.use('/api', async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (err) {
+        next(err);
+    }
+});
 
-const authRoutes = require('../routes/auth');
-const notesRoutes = require('../routes/notes');
-const statsRoutes = require('../routes/stats');
-
-app.use('/api/auth', authRoutes);
-app.use('/api/notes', notesRoutes);
-app.use('/api/stats', statsRoutes);
+// Daftarkan rute sesuai struktur server.js
+app.use('/api/auth', require('../routes/auth'));
+app.use('/api/notes', auth, require('../routes/notes'));
+app.use('/api/stats', auth, require('../routes/stats'));
 
 app.get('/api', (req, res) => {
     res.json({ status: 'API IksunSave Berjalan Normal!' });
 });
+
+app.use(errorHandler);
 
 module.exports = app;
