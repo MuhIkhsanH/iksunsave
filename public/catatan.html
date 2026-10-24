@@ -21,9 +21,14 @@ tailwind.config = { theme: { extend: {
   #editor-body h2 { font-size: 1.3em; font-weight: 600; margin: .5em 0; }
   #editor-body ul { list-style: disc; padding-left: 1.5em; }
   #editor-body ol { list-style: decimal; padding-left: 1.5em; }
-  .tb { height: 28px; min-width: 28px; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+  
+  .tb { flex-shrink: 0; white-space: nowrap; height: 28px; min-width: 28px; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 500; }
   .tb:hover { background: #e9e7eb; }
   .tb:active { background: #e3e2e6; }
+  
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-thumb { background: #c1c6d6; border-radius: 9px; }
 </style>
@@ -34,13 +39,11 @@ tailwind.config = { theme: { extend: {
 <header class="flex-none bg-surface border-b border-surface-var/80 relative z-50">
   <div class="min-h-14 px-3 py-1.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-4">
     <div class="flex items-center gap-2 shrink-0">
-      <!-- Tombol Hamburger (Hanya tampil di HP) -->
       <button id="menu-btn" class="sm:hidden p-1.5 -ml-1 text-outline hover:bg-surface-var rounded-md transition" title="Menu">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
       
       <div class="flex flex-col">
-        <!-- Teks sapaan diperbesar menjadi text-sm / text-base -->
         <span class="text-sm sm:text-base font-semibold leading-tight">Halo, <span id="welcome" class="text-primary">User</span></span>
         <span class="text-[10px] text-outline font-mono">IksunSave</span>
       </div>
@@ -57,17 +60,22 @@ tailwind.config = { theme: { extend: {
       </div>
     </div>
 
-    <button id="save-btn" class="order-2 sm:order-3 shrink-0 px-3.5 py-1.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-container active:scale-95 transition shadow-sm disabled:opacity-60">Simpan</button>
+    <!-- AREA TOMBOL SIMPAN & INDIKATOR -->
+    <div class="order-2 sm:order-3 flex items-center gap-2 shrink-0">
+      <span id="save-status" class="text-[11px] font-medium transition-opacity duration-300 opacity-0 pointer-events-none"></span>
+      <button id="save-btn" class="shrink-0 px-3.5 py-1.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-container active:scale-95 transition shadow-sm disabled:opacity-60">Simpan</button>
+    </div>
   </div>
 </header>
 
+<!-- AREA UTAMA -->
 <div class="flex-1 flex flex-row overflow-hidden w-full relative">
 
   <!-- Backdrop Mobile -->
-  <div id="sidebar-backdrop" class="fixed inset-0 z-30 bg-black/40 hidden sm:hidden backdrop-blur-sm transition-opacity"></div>
+  <div id="sidebar-backdrop" class="absolute inset-0 z-30 bg-black/40 hidden sm:hidden backdrop-blur-sm transition-opacity"></div>
 
-  <!-- SIDEBAR (Fixed di HP, Relative di Desktop) -->
-  <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 shrink-0 border-r border-surface-var/80 bg-surface-low flex flex-col h-full select-none transform -translate-x-full transition-transform duration-300 sm:relative sm:translate-x-0 sm:w-64 md:w-72">
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="absolute sm:relative inset-y-0 left-0 z-40 w-64 md:w-72 shrink-0 border-r border-surface-var/80 bg-surface-low flex flex-col h-full select-none transform -translate-x-full transition-transform duration-300 sm:translate-x-0">
     <div class="p-2.5 border-b border-surface-var/60 flex flex-col gap-2">
       <button id="new-note-btn" class="w-full py-1.5 rounded-lg bg-surface text-primary border border-primary/30 hover:bg-[#d8e2ff]/40 active:scale-[0.98] text-sm font-semibold flex items-center justify-center gap-1.5 transition">
         <span class="text-base font-bold leading-none">+</span> Catatan Baru
@@ -81,29 +89,33 @@ tailwind.config = { theme: { extend: {
 
   <!-- EDITOR -->
   <main class="flex-1 flex flex-col h-full bg-surface overflow-hidden min-w-0">
-    <div class="flex-none bg-white border-b border-surface-var/70 px-2 sm:px-4 py-1.5 flex items-center gap-1 overflow-x-auto select-none">
+    <!-- TOOLBAR -->
+    <div class="flex-none bg-white border-b border-surface-var/70 px-2 sm:px-4 py-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar select-none">
       <button class="tb" data-cmd="undo" title="Undo (Ctrl+Z)">↩</button>
       <button class="tb" data-cmd="redo" title="Redo (Ctrl+Y)">↪</button>
-      <div class="h-4 w-px bg-surface-var mx-0.5"></div>
+      <div class="shrink-0 h-4 w-px bg-surface-var mx-0.5"></div>
       <button class="tb font-bold" data-cmd="bold" title="Tebal (Ctrl+B)">B</button>
       <button class="tb italic font-serif" data-cmd="italic" title="Miring (Ctrl+I)">I</button>
       <button class="tb underline" data-cmd="underline" title="Garis bawah (Ctrl+U)">U</button>
       <button class="tb line-through" data-cmd="strikeThrough" title="Coret">S</button>
-      <div class="h-4 w-px bg-surface-var mx-0.5"></div>
+      <div class="shrink-0 h-4 w-px bg-surface-var mx-0.5"></div>
       <button class="tb font-semibold" data-cmd="formatBlock" data-val="H1" title="Heading besar">H1</button>
       <button class="tb font-semibold" data-cmd="formatBlock" data-val="H2" title="Heading sedang">H2</button>
       <button class="tb" data-cmd="formatBlock" data-val="DIV" title="Teks biasa">Aa</button>
-      <div class="h-4 w-px bg-surface-var mx-0.5"></div>
-      <button class="tb whitespace-nowrap" data-cmd="insertUnorderedList">• List</button>
-      <button class="tb whitespace-nowrap" data-cmd="insertOrderedList">1. List</button>
+      <div class="shrink-0 h-4 w-px bg-surface-var mx-0.5"></div>
+      <button class="tb" data-cmd="insertUnorderedList">&bull; List</button>
+      <button class="tb" data-cmd="insertOrderedList">1. List</button>
     </div>
 
-    <div class="flex-1 overflow-y-auto px-4 sm:px-7 py-4 sm:py-6 max-w-3xl w-full">
-      <input id="title" type="text" placeholder="Judul Catatan..."
-        class="w-full text-lg sm:text-2xl font-semibold bg-transparent border-0 border-b border-surface-var/60 pb-2 mb-4 focus:outline-none placeholder:text-outline tracking-tight">
-      <div id="editor-body" contenteditable="true" spellcheck="false"
-        data-placeholder="Ketik catatan Anda di sini..."
-        class="w-full min-h-[60vh] text-sm sm:text-base leading-relaxed break-words select-text"></div>
+    <!-- AREA SCROLL -->
+    <div class="flex-1 overflow-y-auto w-full">
+      <div class="mx-auto px-4 sm:px-7 py-4 sm:py-6 max-w-3xl w-full h-full">
+        <input id="title" type="text" placeholder="Judul Catatan..."
+          class="w-full text-lg sm:text-2xl font-semibold bg-transparent border-0 border-b border-surface-var/60 pb-2 mb-4 focus:outline-none placeholder:text-outline tracking-tight">
+        <div id="editor-body" contenteditable="true" spellcheck="false"
+          data-placeholder="Ketik catatan Anda di sini..."
+          class="w-full min-h-[60vh] text-sm sm:text-base leading-relaxed break-words select-text"></div>
+      </div>
     </div>
   </main>
 </div>
@@ -127,15 +139,20 @@ tailwind.config = { theme: { extend: {
 (function () {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const nama = localStorage.getItem('nama') || sessionStorage.getItem('nama') || 'User';
-    if (!token) { location.replace('/login.html'); return; }
+    
+    if (!token) { 
+        location.replace('/login.html'); 
+        return; 
+    }
 
     const $ = (id) => document.getElementById(id);
     let notes = [];
     let currentId = null;
+    let isDirty = false;
 
-    // ---------- UI Responsif (Hamburger) ----------
     const sidebar = $('sidebar');
     const backdrop = $('sidebar-backdrop');
+    const saveStatus = $('save-status');
     
     function toggleMenu() {
         const isOpen = !sidebar.classList.contains('-translate-x-full');
@@ -151,20 +168,51 @@ tailwind.config = { theme: { extend: {
     $('menu-btn').addEventListener('click', toggleMenu);
     backdrop.addEventListener('click', toggleMenu);
 
-    // ---------- Helper ----------
+    function updateSaveStatus(dirty) {
+        isDirty = dirty;
+        saveStatus.classList.remove('opacity-0', 'text-amber-600', 'text-emerald-600');
+        
+        if (dirty) {
+            saveStatus.textContent = '* Belum disimpan';
+            saveStatus.classList.add('text-amber-600');
+        } else {
+            saveStatus.textContent = 'Tersimpan ✓';
+            saveStatus.classList.add('text-emerald-600');
+            setTimeout(() => { 
+                if (!isDirty) {
+                    saveStatus.classList.add('opacity-0'); 
+                }
+            }, 2000);
+        }
+    }
+
     function logout() {
-        ['token', 'nama'].forEach((k) => { localStorage.removeItem(k); sessionStorage.removeItem(k); });
+        ['token', 'nama'].forEach((k) => { 
+            localStorage.removeItem(k); 
+            sessionStorage.removeItem(k); 
+        });
         location.replace('/login.html');
     }
 
     async function api(path, opt = {}) {
         const res = await fetch('/api' + path, {
             ...opt,
-            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, ...(opt.headers || {}) }
+            headers: { 
+                'Content-Type': 'application/json', 
+                Authorization: 'Bearer ' + token, 
+                ...(opt.headers || {}) 
+            }
         });
-        if (res.status === 401) { logout(); throw new Error('Sesi habis'); }
+        
+        if (res.status === 401) { 
+            logout(); 
+            throw new Error('Sesi habis'); 
+        }
+        
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.pesan || 'Terjadi eror');
+        if (!res.ok) {
+            throw new Error(data.pesan || 'Terjadi eror');
+        }
         return data;
     }
 
@@ -174,15 +222,20 @@ tailwind.config = { theme: { extend: {
         t.textContent = msg;
         t.classList.remove('opacity-0', 'translate-y-3');
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => t.classList.add('opacity-0', 'translate-y-3'), 2000);
+        toastTimer = setTimeout(() => {
+            t.classList.add('opacity-0', 'translate-y-3');
+        }, 2000);
     }
 
     function konfirmasi({ judul, pesan, okText = 'Ya', danger = false }) {
         return new Promise((resolve) => {
-            const m = $('modal'), ok = $('modal-ok'), cancel = $('modal-cancel');
+            const m = $('modal');
+            const ok = $('modal-ok');
+            const cancel = $('modal-cancel');
 
             $('modal-title').textContent = judul;
             $('modal-msg').textContent = pesan;
+            
             ok.textContent = okText;
             ok.className = 'px-4 py-2 rounded-lg text-sm font-semibold text-white transition ' +
                 (danger ? 'bg-red-600 hover:bg-red-700' : 'bg-primary hover:bg-primary-container');
@@ -197,11 +250,17 @@ tailwind.config = { theme: { extend: {
                 document.removeEventListener('keydown', onKey);
                 resolve(hasil);
             }
-            function onKey(e) { if (e.key === 'Escape') tutup(false); }
+            
+            function onKey(e) { 
+                if (e.key === 'Escape') tutup(false); 
+            }
 
             ok.onclick = () => tutup(true);
             cancel.onclick = () => tutup(false);
-            m.onclick = (e) => { if (e.target === m) tutup(false); };
+            m.onclick = (e) => { 
+                if (e.target === m) tutup(false); 
+            };
+            
             document.addEventListener('keydown', onKey);
         });
     }
@@ -217,6 +276,7 @@ tailwind.config = { theme: { extend: {
     }
 
     const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    
     function toHtml(isi) {
         isi = isi || '';
         return /<[a-z][\s\S]*>/i.test(isi) ? isi : esc(isi).replace(/\n/g, '<br>');
@@ -227,18 +287,27 @@ tailwind.config = { theme: { extend: {
         $('doc-size').textContent = 'Ukuran: ~' + fmtSize(bytes);
     }
 
-    // ---------- Database ----------
     async function loadStats() {
         try {
             const { data: s } = await api('/stats');
-            $('db-text').textContent = `MongoDB: ${s.dataSizeMB} MB / ${s.batasMB} MB (${s.persen}%)`;
+            const sizeVal = parseFloat(s.dataSizeMB) || 0;
+            let sizeText;
+            
+            if (sizeVal > 0 && sizeVal < 1) {
+                sizeText = (sizeVal * 1024).toFixed(2) + ' KB';
+            } else if (sizeVal === 0) {
+                sizeText = '0 KB';
+            } else {
+                sizeText = sizeVal.toFixed(2) + ' MB';
+            }
+            
+            $('db-text').textContent = `MongoDB: ${sizeText} / ${s.batasMB} MB (${s.persen}%)`;
             $('db-bar').style.width = Math.min(100, Math.max(s.persen, 0.5)) + '%';
         } catch (e) {
             $('db-text').textContent = 'MongoDB: gagal memuat';
         }
     }
 
-    // ---------- Daftar Catatan ----------
     function renderList() {
         const list = $('note-list');
         list.innerHTML = '';
@@ -254,30 +323,38 @@ tailwind.config = { theme: { extend: {
         notes.forEach((n) => {
             const active = n._id === currentId;
             const row = document.createElement('div');
+            
             row.className = 'flex items-center justify-between gap-1 p-2 rounded-md cursor-pointer text-sm transition-colors ' +
                 (active ? 'bg-surface-var border-l-[3px] border-primary text-primary font-semibold' : 'hover:bg-[#efedf1]');
 
             const box = document.createElement('div');
             box.className = 'min-w-0 flex-1';
+            
             const t = document.createElement('p');
             t.className = 'truncate font-medium leading-tight';
             t.textContent = n.Judul || 'Tanpa Judul';
+            
             const s = document.createElement('span');
             s.className = 'text-[10px] ' + (active ? 'text-primary/80' : 'text-outline');
             s.textContent = `${fmtSize(n.size)} · ${fmtDate(n.Date)}`;
+            
             box.append(t, s);
 
             const del = document.createElement('button');
             del.title = 'Hapus catatan';
             del.className = 'shrink-0 p-1.5 rounded text-outline hover:bg-red-100 hover:text-red-600 transition-colors';
             del.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-            del.addEventListener('click', (e) => { e.stopPropagation(); removeNote(n._id, n.Judul); });
+            
+            del.addEventListener('click', (e) => { 
+                e.stopPropagation(); 
+                removeNote(n._id, n.Judul); 
+            });
 
             row.addEventListener('click', () => {
                 openNote(n._id);
-                // Tutup sidebar otomatis di HP setelah memilih catatan
                 if (window.innerWidth < 640) toggleMenu();
             });
+            
             row.append(box, del);
             list.appendChild(row);
         });
@@ -290,7 +367,6 @@ tailwind.config = { theme: { extend: {
         renderList();
     }
 
-    // ---------- Aksi Catatan ----------
     async function openNote(id) {
         try {
             const { data } = await api('/notes/' + id);
@@ -299,7 +375,12 @@ tailwind.config = { theme: { extend: {
             $('editor-body').innerHTML = toHtml(data.Isi);
             renderList();
             updateSize();
-        } catch (e) { toast(e.message); }
+            
+            isDirty = false;
+            saveStatus.classList.add('opacity-0');
+        } catch (e) { 
+            toast(e.message); 
+        }
     }
 
     function newNote() {
@@ -309,7 +390,11 @@ tailwind.config = { theme: { extend: {
         renderList();
         updateSize();
         $('title').focus();
+        
         if (window.innerWidth < 640) toggleMenu();
+        
+        isDirty = false;
+        saveStatus.classList.add('opacity-0');
     }
 
     async function saveNote() {
@@ -321,6 +406,7 @@ tailwind.config = { theme: { extend: {
 
         btn.disabled = true;
         btn.textContent = 'Menyimpan...';
+        
         try {
             const res = currentId
                 ? await api('/notes/' + currentId, { method: 'PUT', body: JSON.stringify(payload) })
@@ -328,9 +414,12 @@ tailwind.config = { theme: { extend: {
 
             currentId = res.data._id;
             $('title').value = res.data.Judul;
+            
             await loadNotes();
             loadStats();
             toast('Tersimpan!');
+            
+            updateSaveStatus(false);
         } catch (e) {
             toast(e.message);
         } finally {
@@ -346,18 +435,21 @@ tailwind.config = { theme: { extend: {
             okText: 'Hapus',
             danger: true
         });
+        
         if (!yakin) return;
 
         try {
             await api('/notes/' + id, { method: 'DELETE' });
             if (id === currentId) newNote();
+            
             await loadNotes();
             loadStats();
             toast('Catatan dihapus');
-        } catch (e) { toast(e.message); }
+        } catch (e) { 
+            toast(e.message); 
+        }
     }
 
-    // ---------- Event ----------
     $('welcome').textContent = nama;
 
     $('logout-btn').addEventListener('click', async () => {
@@ -366,6 +458,7 @@ tailwind.config = { theme: { extend: {
             pesan: 'Kamu akan keluar dari IksunSave.',
             okText: 'Keluar'
         });
+        
         if (yakin) logout();
     });
 
@@ -375,23 +468,31 @@ tailwind.config = { theme: { extend: {
     let searchTimer;
     $('search').addEventListener('input', () => {
         clearTimeout(searchTimer);
-        searchTimer = setTimeout(() => loadNotes().catch((e) => toast(e.message)), 300);
+        searchTimer = setTimeout(() => {
+            loadNotes().catch((e) => toast(e.message));
+        }, 300);
     });
 
-    $('title').addEventListener('input', updateSize);
-    $('editor-body').addEventListener('input', updateSize);
+    $('title').addEventListener('input', () => { 
+        updateSize(); 
+        updateSaveStatus(true); 
+    });
+    
+    $('editor-body').addEventListener('input', () => { 
+        updateSize(); 
+        updateSaveStatus(true); 
+    });
 
-    // Mencegah select teks hilang saat klik toolbar
     document.querySelectorAll('[data-cmd]').forEach((b) => {
         b.addEventListener('mousedown', (e) => e.preventDefault());
         b.addEventListener('click', () => {
             $('editor-body').focus();
             document.execCommand(b.dataset.cmd, false, b.dataset.val || null);
             updateSize();
+            updateSaveStatus(true);
         });
     });
 
-    // Handle Keyboard Shortcuts (Ctrl+S, Ctrl+B, Ctrl+I, Ctrl+U)
     document.addEventListener('keydown', (e) => {
         const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
         const cmd = isMac ? e.metaKey : e.ctrlKey;
@@ -406,27 +507,35 @@ tailwind.config = { theme: { extend: {
                 e.preventDefault(); 
                 document.execCommand('bold'); 
                 updateSize(); 
+                updateSaveStatus(true);
             }
             else if (key === 'i') { 
                 e.preventDefault(); 
                 document.execCommand('italic'); 
                 updateSize(); 
+                updateSaveStatus(true);
             }
             else if (key === 'u') { 
                 e.preventDefault(); 
                 document.execCommand('underline'); 
                 updateSize(); 
+                updateSaveStatus(true);
             }
         }
     });
 
-    // ---------- Init ----------
     (async function init() {
         try {
             await loadNotes();
             loadStats();
-            if (notes.length) openNote(notes[0]._id); else newNote();
-        } catch (e) { toast(e.message); }
+            if (notes.length) {
+                openNote(notes[0]._id); 
+            } else {
+                newNote();
+            }
+        } catch (e) { 
+            toast(e.message); 
+        }
     })();
 })();
 </script>

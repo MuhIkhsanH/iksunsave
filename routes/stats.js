@@ -14,10 +14,11 @@ router.get('/', asyncHandler(async (req, res) => {
             database: stats.db,
             koleksi: stats.collections,
             dokumen: stats.objects,
-            dataSizeMB: +(stats.dataSize / MB).toFixed(2),
-            storageSizeMB: +(stats.storageSize / MB).toFixed(2),
+            
+            dataSizeMB: stats.dataSize / MB,
+            storageSizeMB: stats.storageSize / MB,
             batasMB: BATAS_MB,
-            persen: +((stats.dataSize / (BATAS_MB * MB)) * 100).toFixed(2)
+            persen: +((stats.dataSize / (BATAS_MB * MB)) * 100).toFixed(4)
         }
     });
 }));
