@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Catatan · IksunSave</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: {
+    colors: { primary: '#005bbf', 'primary-container': '#1a73e8', surface: '#faf9fd', 'surface-low': '#f4f3f7', 'surface-var': '#e3e2e6', outline: '#727785' },
+    fontFamily: { sans: ['Inter'], mono: ['JetBrains Mono'] }
+} } };
+</script>
+<style>
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+  #editor-body { outline: none; }
+  #editor-body:empty:before { content: attr(data-placeholder); color: #727785; }
+  #editor-body h1 { font-size: 1.6em; font-weight: 700; margin: .5em 0; }
+  #editor-body h2 { font-size: 1.3em; font-weight: 600; margin: .5em 0; }
+  #editor-body ul { list-style: disc; padding-left: 1.5em; }
+  #editor-body ol { list-style: decimal; padding-left: 1.5em; }
+  .tb { height: 28px; min-width: 28px; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+  .tb:hover { background: #e9e7eb; }
+  .tb:active { background: #e3e2e6; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: #c1c6d6; border-radius: 9px; }
+</style>
+</head>
+<body class="bg-surface font-sans text-[#1a1b1e] antialiased flex flex-col h-[100dvh]">
+
+<!-- HEADER -->
+<header class="flex-none bg-surface border-b border-surface-var/80">
+  <div class="min-h-14 px-3 py-1.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-4">
+    <div class="flex items-center gap-2 shrink-0">
+      <div class="flex flex-col">
+        <span class="text-xs font-semibold leading-tight">Halo, <span id="welcome" class="text-primary">User</span></span>
+        <span class="text-[10px] text-outline font-mono">IksunSave</span>
+      </div>
+      <button id="logout-btn" class="ml-1 px-2 py-0.5 rounded text-[11px] font-medium text-outline hover:text-red-600 hover:bg-red-50 border border-surface-var transition">Logout</button>
+    </div>
+
+    <div class="flex-1 min-w-[180px] max-w-md mx-auto px-2 order-3 sm:order-2 w-full sm:w-auto">
+      <div class="flex items-center justify-between text-[11px] font-mono mb-1 text-[#414754]">
+        <span id="db-text" class="truncate font-medium">MongoDB: memuat...</span>
+        <span id="doc-size" class="shrink-0 text-outline ml-2 font-medium">Ukuran: ~0 B</span>
+      </div>
+      <div class="w-full bg-surface-var rounded-full h-1.5 overflow-hidden">
+        <div id="db-bar" class="bg-primary h-full rounded-full transition-all duration-300" style="width:0.5%"></div>
+      </div>
+    </div>
+
+    <button id="save-btn" class="order-2 sm:order-3 shrink-0 px-3.5 py-1.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-container active:scale-95 transition shadow-sm disabled:opacity-60">Simpan</button>
+  </div>
+</header>
+
+<div class="flex-1 flex flex-row overflow-hidden w-full">
+
+  <!-- SIDEBAR -->
+  <aside class="w-40 sm:w-64 md:w-72 shrink-0 border-r border-surface-var/80 bg-surface-low flex flex-col h-full select-none">
+    <div class="p-2.5 border-b border-surface-var/60 flex flex-col gap-2">
+      <button id="new-note-btn" class="w-full py-1.5 rounded-lg bg-surface text-primary border border-primary/30 hover:bg-[#d8e2ff]/40 active:scale-[0.98] text-sm font-semibold flex items-center justify-center gap-1.5 transition">
+        <span class="text-base font-bold leading-none">+</span> Catatan Baru
+      </button>
+      <input id="search" type="text" placeholder="Cari judul atau isi..."
+        class="w-full px-2.5 py-1.5 border border-surface-var rounded-lg text-xs bg-white placeholder:text-outline/70 focus:outline-none focus:border-primary">
+    </div>
+    <div class="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-outline font-mono">Daftar Catatan</div>
+    <div id="note-list" class="flex-1 overflow-y-auto px-1.5 py-1 flex flex-col gap-1"></div>
+  </aside>
+
+  <!-- EDITOR -->
+  <main class="flex-1 flex flex-col h-full bg-surface overflow-hidden min-w-0">
+    <div class="flex-none bg-white border-b border-surface-var/70 px-2 sm:px-4 py-1.5 flex items-center gap-1 overflow-x-auto select-none">
+      <button class="tb" data-cmd="undo" title="Undo">↩</button>
+      <button class="tb" data-cmd="redo" title="Redo">↪</button>
+      <div class="h-4 w-px bg-surface-var mx-0.5"></div>
+      <button class="tb font-bold" data-cmd="bold" title="Tebal">B</button>
+      <button class="tb italic font-serif" data-cmd="italic" title="Miring">I</button>
+      <button class="tb underline" data-cmd="underline" title="Garis bawah">U</button>
+      <button class="tb line-through" data-cmd="strikeThrough" title="Coret">S</button>
+      <div class="h-4 w-px bg-surface-var mx-0.5"></div>
+      <button class="tb font-semibold" data-cmd="formatBlock" data-val="H1" title="Heading besar">H1</button>
+      <button class="tb font-semibold" data-cmd="formatBlock" data-val="H2" title="Heading sedang">H2</button>
+      <button class="tb" data-cmd="formatBlock" data-val="DIV" title="Teks biasa">Aa</button>
+      <div class="h-4 w-px bg-surface-var mx-0.5"></div>
+      <button class="tb whitespace-nowrap" data-cmd="insertUnorderedList">• List</button>
+      <button class="tb whitespace-nowrap" data-cmd="insertOrderedList">1. List</button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto px-4 sm:px-7 py-4 sm:py-6 max-w-3xl w-full">
+      <input id="title" type="text" placeholder="Judul Catatan..."
+        class="w-full text-lg sm:text-2xl font-semibold bg-transparent border-0 border-b border-surface-var/60 pb-2 mb-4 focus:outline-none placeholder:text-outline tracking-tight">
+      <div id="editor-body" contenteditable="true" spellcheck="false"
+        data-placeholder="Ketik catatan Anda di sini..."
+        class="w-full min-h-[60vh] text-sm sm:text-base leading-relaxed break-words select-text"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal Konfirmasi -->
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+  <div class="w-full max-w-sm bg-white rounded-2xl shadow-xl p-5">
+    <h3 id="modal-title" class="text-base font-semibold mb-1"></h3>
+    <p id="modal-msg" class="text-sm text-[#414754] mb-5 break-words"></p>
+    <div class="flex justify-end gap-2">
+      <button id="modal-cancel" class="px-4 py-2 rounded-lg text-sm font-medium text-[#414754] hover:bg-surface-low transition">Batal</button>
+      <button id="modal-ok" class="px-4 py-2 rounded-lg text-sm font-semibold text-white transition"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed left-1/2 -translate-x-1/2 bottom-6 px-4 py-2 bg-[#2f3033] text-[#f1f0f4] rounded-full text-xs shadow-lg transition-all opacity-0 pointer-events-none translate-y-3"></div>
+
+<script>
+(function () {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const nama = localStorage.getItem('nama') || sessionStorage.getItem('nama') || 'User';
+    if (!token) { location.replace('/login.html'); return; }
+
+    const $ = (id) => document.getElementById(id);
+    let notes = [];
+    let currentId = null;
+
+    // ---------- helper ----------
+    function logout() {
+        ['token', 'nama'].forEach((k) => { localStorage.removeItem(k); sessionStorage.removeItem(k); });
+        location.replace('/login.html');
+    }
+
+    async function api(path, opt = {}) {
+        const res = await fetch('/api' + path, {
+            ...opt,
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, ...(opt.headers || {}) }
+        });
+        if (res.status === 401) { logout(); throw new Error('Sesi habis'); }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.pesan || 'Terjadi eror');
+        return data;
+    }
+
+    let toastTimer;
+    function toast(msg) {
+        const t = $('toast');
+        t.textContent = msg;
+        t.classList.remove('opacity-0', 'translate-y-3');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.add('opacity-0', 'translate-y-3'), 2000);
+    }
+
+    // modal konfirmasi (pengganti confirm bawaan browser)
+    function konfirmasi({ judul, pesan, okText = 'Ya', danger = false }) {
+        return new Promise((resolve) => {
+            const m = $('modal'), ok = $('modal-ok'), cancel = $('modal-cancel');
+
+            $('modal-title').textContent = judul;
+            $('modal-msg').textContent = pesan;
+            ok.textContent = okText;
+            ok.className = 'px-4 py-2 rounded-lg text-sm font-semibold text-white transition ' +
+                (danger ? 'bg-red-600 hover:bg-red-700' : 'bg-primary hover:bg-primary-container');
+
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+            ok.focus();
+
+            function tutup(hasil) {
+                m.classList.add('hidden');
+                m.classList.remove('flex');
+                document.removeEventListener('keydown', onKey);
+                resolve(hasil);
+            }
+            function onKey(e) { if (e.key === 'Escape') tutup(false); }
+
+            ok.onclick = () => tutup(true);
+            cancel.onclick = () => tutup(false);
+            m.onclick = (e) => { if (e.target === m) tutup(false); }; // klik area gelap = batal
+            document.addEventListener('keydown', onKey);
+        });
+    }
+
+    function fmtSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+    }
+
+    function fmtDate(d) {
+        return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+    }
+
+    const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // catatan lama (teks biasa) -> HTML aman; catatan baru sudah HTML hasil sanitize server
+    function toHtml(isi) {
+        isi = isi || '';
+        return /<[a-z][\s\S]*>/i.test(isi) ? isi : esc(isi).replace(/\n/g, '<br>');
+    }
+
+    function updateSize() {
+        const bytes = new Blob([$('title').value + $('editor-body').innerHTML]).size;
+        $('doc-size').textContent = 'Ukuran: ~' + fmtSize(bytes);
+    }
+
+    // ---------- statistik database ----------
+    async function loadStats() {
+        try {
+            const { data: s } = await api('/stats');
+            $('db-text').textContent = `MongoDB: ${s.dataSizeMB} MB / ${s.batasMB} MB (${s.persen}%)`;
+            $('db-bar').style.width = Math.min(100, Math.max(s.persen, 0.5)) + '%';
+        } catch (e) {
+            $('db-text').textContent = 'MongoDB: gagal memuat';
+        }
+    }
+
+    // ---------- daftar catatan ----------
+    function renderList() {
+        const list = $('note-list');
+        list.innerHTML = '';
+
+        if (!notes.length) {
+            const p = document.createElement('p');
+            p.className = 'text-xs text-outline text-center py-4';
+            p.textContent = $('search').value.trim() ? 'Tidak ada hasil' : 'Belum ada catatan';
+            list.appendChild(p);
+            return;
+        }
+
+        notes.forEach((n) => {
+            const active = n._id === currentId;
+            const row = document.createElement('div');
+            row.className = 'flex items-center justify-between gap-1 p-2 rounded-md cursor-pointer text-sm transition-colors ' +
+                (active ? 'bg-surface-var border-l-[3px] border-primary text-primary font-semibold' : 'hover:bg-[#efedf1]');
+
+            const box = document.createElement('div');
+            box.className = 'min-w-0 flex-1';
+            const t = document.createElement('p');
+            t.className = 'truncate font-medium leading-tight';
+            t.textContent = n.Judul || 'Tanpa Judul';
+            const s = document.createElement('span');
+            s.className = 'text-[10px] ' + (active ? 'text-primary/80' : 'text-outline');
+            s.textContent = `${fmtSize(n.size)} · ${fmtDate(n.Date)}`;
+            box.append(t, s);
+
+            const del = document.createElement('button');
+            del.title = 'Hapus catatan';
+            del.className = 'shrink-0 p-1.5 rounded text-outline hover:bg-red-100 hover:text-red-600 transition-colors';
+            del.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            del.addEventListener('click', (e) => { e.stopPropagation(); removeNote(n._id, n.Judul); });
+
+            row.addEventListener('click', () => openNote(n._id));
+            row.append(box, del);
+            list.appendChild(row);
+        });
+    }
+
+    // ambil daftar dari server; kalau kolom cari terisi, server mencari di judul DAN isi
+    async function loadNotes() {
+        const q = $('search').value.trim();
+        const res = await api('/notes' + (q ? '?q=' + encodeURIComponent(q) : ''));
+        notes = res.data;
+        renderList();
+    }
+
+    // ---------- aksi catatan ----------
+    async function openNote(id) {
+        try {
+            const { data } = await api('/notes/' + id);
+            currentId = data._id;
+            $('title').value = data.Judul || '';
+            $('editor-body').innerHTML = toHtml(data.Isi);
+            renderList();
+            updateSize();
+        } catch (e) { toast(e.message); }
+    }
+
+    function newNote() {
+        currentId = null;
+        $('title').value = '';
+        $('editor-body').innerHTML = '';
+        renderList();
+        updateSize();
+        $('title').focus();
+    }
+
+    async function saveNote() {
+        const btn = $('save-btn');
+        const payload = {
+            Judul: $('title').value.trim() || 'Tanpa Judul',
+            Isi: $('editor-body').innerHTML
+        };
+
+        btn.disabled = true;
+        btn.textContent = 'Menyimpan...';
+        try {
+            const res = currentId
+                ? await api('/notes/' + currentId, { method: 'PUT', body: JSON.stringify(payload) })
+                : await api('/notes', { method: 'POST', body: JSON.stringify(payload) });
+
+            currentId = res.data._id;
+            $('title').value = res.data.Judul;
+            await loadNotes();
+            loadStats();
+            toast('Tersimpan!');
+        } catch (e) {
+            toast(e.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Simpan';
+        }
+    }
+
+    async function removeNote(id, judul) {
+        const yakin = await konfirmasi({
+            judul: 'Hapus catatan?',
+            pesan: `"${judul || 'Tanpa Judul'}" akan dihapus permanen.`,
+            okText: 'Hapus',
+            danger: true
+        });
+        if (!yakin) return;
+
+        try {
+            await api('/notes/' + id, { method: 'DELETE' });
+            if (id === currentId) newNote();
+            await loadNotes();
+            loadStats();
+            toast('Catatan dihapus');
+        } catch (e) { toast(e.message); }
+    }
+
+    // ---------- event ----------
+    $('welcome').textContent = nama;
+
+    $('logout-btn').addEventListener('click', async () => {
+        const yakin = await konfirmasi({
+            judul: 'Keluar?',
+            pesan: 'Kamu akan keluar dari IksunSave.',
+            okText: 'Keluar'
+        });
+        if (yakin) logout();
+    });
+
+    $('save-btn').addEventListener('click', saveNote);
+    $('new-note-btn').addEventListener('click', newNote);
+
+    // pencarian: tunggu 300 ms setelah berhenti mengetik, baru tanya server
+    let searchTimer;
+    $('search').addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => loadNotes().catch((e) => toast(e.message)), 300);
+    });
+
+    $('title').addEventListener('input', updateSize);
+    $('editor-body').addEventListener('input', updateSize);
+
+    // toolbar: mousedown di-preventDefault supaya seleksi teks tidak hilang
+    document.querySelectorAll('[data-cmd]').forEach((b) => {
+        b.addEventListener('mousedown', (e) => e.preventDefault());
+        b.addEventListener('click', () => {
+            $('editor-body').focus();
+            document.execCommand(b.dataset.cmd, false, b.dataset.val || null);
+            updateSize();
+        });
+    });
+
+    // Ctrl/Cmd + S = simpan
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            saveNote();
+        }
+    });
+
+    // ---------- init ----------
+    (async function init() {
+        try {
+            await loadNotes();
+            loadStats();
+            if (notes.length) openNote(notes[0]._id); else newNote();
+        } catch (e) { toast(e.message); }
+    })();
+})();
+</script>
+</body>
+</html>

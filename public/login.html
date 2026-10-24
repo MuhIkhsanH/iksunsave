@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Masuk · IksunSave</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: {
+    colors: { primary: '#005bbf', 'primary-container': '#1a73e8', surface: '#faf9fd', 'surface-low': '#f4f3f7', outline: '#727785' },
+    fontFamily: { sans: ['Inter'] }
+} } };
+</script>
+</head>
+<body class="bg-surface font-sans text-[#1a1b1e] min-h-[100dvh] flex items-center justify-center px-4 antialiased">
+<main class="w-full max-w-sm">
+
+  <div class="flex flex-col items-center text-center mb-6">
+    <div class="w-12 h-12 rounded-xl bg-[#d8e2ff] text-primary flex items-center justify-center shadow-sm mb-3">
+      <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">description</span>
+    </div>
+    <h1 class="text-[22px] font-semibold tracking-tight">IksunSave</h1>
+    <p class="text-[13px] text-[#414754]">Website catatan MongoDB</p>
+  </div>
+
+  <form id="login-form" class="bg-white rounded-2xl shadow-sm p-6 space-y-4" novalidate>
+    <div class="space-y-1">
+      <label for="nama" class="text-xs font-medium">Username</label>
+      <div class="relative">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px] pointer-events-none">person</span>
+        <input id="nama" type="text" autocomplete="username" placeholder="Masukkan username"
+          class="w-full pl-10 pr-3 py-2.5 bg-surface-low rounded-xl outline-none text-[15px] focus:bg-surface focus:ring-2 focus:ring-primary-container transition">
+      </div>
+    </div>
+
+    <div class="space-y-1">
+      <label for="password" class="text-xs font-medium">Kata Sandi</label>
+      <div class="relative">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px] pointer-events-none">lock</span>
+        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••"
+          class="w-full pl-10 pr-11 py-2.5 bg-surface-low rounded-xl outline-none text-[15px] focus:bg-surface focus:ring-2 focus:ring-primary-container transition">
+        <button type="button" id="toggle" aria-label="Tampilkan sandi"
+          class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-outline hover:text-[#1a1b1e]">
+          <span class="material-symbols-outlined text-[20px]" id="toggle-icon">visibility</span>
+        </button>
+      </div>
+    </div>
+
+    <label class="flex items-center gap-2 text-xs text-[#414754] cursor-pointer select-none">
+      <input id="remember" type="checkbox" checked class="accent-[#1a73e8] w-4 h-4"> Ingat sesi saya (7 hari)
+    </label>
+
+    <p id="error" class="hidden text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2"></p>
+
+    <button id="btn" type="submit"
+      class="w-full py-3 rounded-full bg-primary-container hover:bg-primary text-white text-sm font-medium flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-60">
+      <span id="btn-text">Masuk ke Catatan</span>
+      <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+    </button>
+  </form>
+</main>
+
+<script>
+(function () {
+    // sudah login? langsung ke catatan
+    if (localStorage.getItem('token') || sessionStorage.getItem('token')) {
+        location.replace('/catatan.html');
+        return;
+    }
+
+    const $ = (id) => document.getElementById(id);
+    const form = $('login-form');
+    const errBox = $('error');
+
+    $('toggle').addEventListener('click', () => {
+        const hidden = $('password').type === 'password';
+        $('password').type = hidden ? 'text' : 'password';
+        $('toggle-icon').textContent = hidden ? 'visibility_off' : 'visibility';
+    });
+
+    function showError(msg) {
+        errBox.textContent = msg;
+        errBox.classList.remove('hidden');
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errBox.classList.add('hidden');
+
+        const nama = $('nama').value.trim();
+        const password = $('password').value;
+        const remember = $('remember').checked;
+
+        if (!nama) return showError('Silakan masukkan username'), $('nama').focus();
+        if (!password) return showError('Silakan masukkan kata sandi'), $('password').focus();
+
+        $('btn').disabled = true;
+        $('btn-text').textContent = 'Memverifikasi...';
+
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nama, password, remember })
+            });
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.pesan || 'Login gagal');
+
+            const store = remember ? localStorage : sessionStorage;
+            store.setItem('token', data.token);
+            store.setItem('nama', data.data.nama);
+            location.replace('/catatan.html');
+        } catch (err) {
+            showError(err.message);
+            $('btn').disabled = false;
+            $('btn-text').textContent = 'Masuk ke Catatan';
+        }
+    });
+})();
+</script>
+</body>
+</html>
