@@ -31,11 +31,17 @@ tailwind.config = { theme: { extend: {
 <body class="bg-surface font-sans text-[#1a1b1e] antialiased flex flex-col h-[100dvh]">
 
 <!-- HEADER -->
-<header class="flex-none bg-surface border-b border-surface-var/80">
+<header class="flex-none bg-surface border-b border-surface-var/80 relative z-50">
   <div class="min-h-14 px-3 py-1.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-4">
     <div class="flex items-center gap-2 shrink-0">
+      <!-- Tombol Hamburger (Hanya tampil di HP) -->
+      <button id="menu-btn" class="sm:hidden p-1.5 -ml-1 text-outline hover:bg-surface-var rounded-md transition" title="Menu">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      
       <div class="flex flex-col">
-        <span class="text-xs font-semibold leading-tight">Halo, <span id="welcome" class="text-primary">User</span></span>
+        <!-- Teks sapaan diperbesar menjadi text-sm / text-base -->
+        <span class="text-sm sm:text-base font-semibold leading-tight">Halo, <span id="welcome" class="text-primary">User</span></span>
         <span class="text-[10px] text-outline font-mono">IksunSave</span>
       </div>
       <button id="logout-btn" class="ml-1 px-2 py-0.5 rounded text-[11px] font-medium text-outline hover:text-red-600 hover:bg-red-50 border border-surface-var transition">Logout</button>
@@ -55,10 +61,13 @@ tailwind.config = { theme: { extend: {
   </div>
 </header>
 
-<div class="flex-1 flex flex-row overflow-hidden w-full">
+<div class="flex-1 flex flex-row overflow-hidden w-full relative">
 
-  <!-- SIDEBAR -->
-  <aside class="w-40 sm:w-64 md:w-72 shrink-0 border-r border-surface-var/80 bg-surface-low flex flex-col h-full select-none">
+  <!-- Backdrop Mobile -->
+  <div id="sidebar-backdrop" class="fixed inset-0 z-30 bg-black/40 hidden sm:hidden backdrop-blur-sm transition-opacity"></div>
+
+  <!-- SIDEBAR (Fixed di HP, Relative di Desktop) -->
+  <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 shrink-0 border-r border-surface-var/80 bg-surface-low flex flex-col h-full select-none transform -translate-x-full transition-transform duration-300 sm:relative sm:translate-x-0 sm:w-64 md:w-72">
     <div class="p-2.5 border-b border-surface-var/60 flex flex-col gap-2">
       <button id="new-note-btn" class="w-full py-1.5 rounded-lg bg-surface text-primary border border-primary/30 hover:bg-[#d8e2ff]/40 active:scale-[0.98] text-sm font-semibold flex items-center justify-center gap-1.5 transition">
         <span class="text-base font-bold leading-none">+</span> Catatan Baru
@@ -73,12 +82,12 @@ tailwind.config = { theme: { extend: {
   <!-- EDITOR -->
   <main class="flex-1 flex flex-col h-full bg-surface overflow-hidden min-w-0">
     <div class="flex-none bg-white border-b border-surface-var/70 px-2 sm:px-4 py-1.5 flex items-center gap-1 overflow-x-auto select-none">
-      <button class="tb" data-cmd="undo" title="Undo">↩</button>
-      <button class="tb" data-cmd="redo" title="Redo">↪</button>
+      <button class="tb" data-cmd="undo" title="Undo (Ctrl+Z)">↩</button>
+      <button class="tb" data-cmd="redo" title="Redo (Ctrl+Y)">↪</button>
       <div class="h-4 w-px bg-surface-var mx-0.5"></div>
-      <button class="tb font-bold" data-cmd="bold" title="Tebal">B</button>
-      <button class="tb italic font-serif" data-cmd="italic" title="Miring">I</button>
-      <button class="tb underline" data-cmd="underline" title="Garis bawah">U</button>
+      <button class="tb font-bold" data-cmd="bold" title="Tebal (Ctrl+B)">B</button>
+      <button class="tb italic font-serif" data-cmd="italic" title="Miring (Ctrl+I)">I</button>
+      <button class="tb underline" data-cmd="underline" title="Garis bawah (Ctrl+U)">U</button>
       <button class="tb line-through" data-cmd="strikeThrough" title="Coret">S</button>
       <div class="h-4 w-px bg-surface-var mx-0.5"></div>
       <button class="tb font-semibold" data-cmd="formatBlock" data-val="H1" title="Heading besar">H1</button>
@@ -112,7 +121,7 @@ tailwind.config = { theme: { extend: {
 </div>
 
 <!-- Toast -->
-<div id="toast" class="fixed left-1/2 -translate-x-1/2 bottom-6 px-4 py-2 bg-[#2f3033] text-[#f1f0f4] rounded-full text-xs shadow-lg transition-all opacity-0 pointer-events-none translate-y-3"></div>
+<div id="toast" class="fixed left-1/2 -translate-x-1/2 bottom-6 z-50 px-4 py-2 bg-[#2f3033] text-[#f1f0f4] rounded-full text-xs shadow-lg transition-all opacity-0 pointer-events-none translate-y-3"></div>
 
 <script>
 (function () {
@@ -124,7 +133,25 @@ tailwind.config = { theme: { extend: {
     let notes = [];
     let currentId = null;
 
-    // ---------- helper ----------
+    // ---------- UI Responsif (Hamburger) ----------
+    const sidebar = $('sidebar');
+    const backdrop = $('sidebar-backdrop');
+    
+    function toggleMenu() {
+        const isOpen = !sidebar.classList.contains('-translate-x-full');
+        if (isOpen) {
+            sidebar.classList.add('-translate-x-full');
+            backdrop.classList.add('hidden');
+        } else {
+            sidebar.classList.remove('-translate-x-full');
+            backdrop.classList.remove('hidden');
+        }
+    }
+    
+    $('menu-btn').addEventListener('click', toggleMenu);
+    backdrop.addEventListener('click', toggleMenu);
+
+    // ---------- Helper ----------
     function logout() {
         ['token', 'nama'].forEach((k) => { localStorage.removeItem(k); sessionStorage.removeItem(k); });
         location.replace('/login.html');
@@ -150,7 +177,6 @@ tailwind.config = { theme: { extend: {
         toastTimer = setTimeout(() => t.classList.add('opacity-0', 'translate-y-3'), 2000);
     }
 
-    // modal konfirmasi (pengganti confirm bawaan browser)
     function konfirmasi({ judul, pesan, okText = 'Ya', danger = false }) {
         return new Promise((resolve) => {
             const m = $('modal'), ok = $('modal-ok'), cancel = $('modal-cancel');
@@ -175,7 +201,7 @@ tailwind.config = { theme: { extend: {
 
             ok.onclick = () => tutup(true);
             cancel.onclick = () => tutup(false);
-            m.onclick = (e) => { if (e.target === m) tutup(false); }; // klik area gelap = batal
+            m.onclick = (e) => { if (e.target === m) tutup(false); };
             document.addEventListener('keydown', onKey);
         });
     }
@@ -191,8 +217,6 @@ tailwind.config = { theme: { extend: {
     }
 
     const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-    // catatan lama (teks biasa) -> HTML aman; catatan baru sudah HTML hasil sanitize server
     function toHtml(isi) {
         isi = isi || '';
         return /<[a-z][\s\S]*>/i.test(isi) ? isi : esc(isi).replace(/\n/g, '<br>');
@@ -203,7 +227,7 @@ tailwind.config = { theme: { extend: {
         $('doc-size').textContent = 'Ukuran: ~' + fmtSize(bytes);
     }
 
-    // ---------- statistik database ----------
+    // ---------- Database ----------
     async function loadStats() {
         try {
             const { data: s } = await api('/stats');
@@ -214,7 +238,7 @@ tailwind.config = { theme: { extend: {
         }
     }
 
-    // ---------- daftar catatan ----------
+    // ---------- Daftar Catatan ----------
     function renderList() {
         const list = $('note-list');
         list.innerHTML = '';
@@ -249,13 +273,16 @@ tailwind.config = { theme: { extend: {
             del.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round"/></svg>';
             del.addEventListener('click', (e) => { e.stopPropagation(); removeNote(n._id, n.Judul); });
 
-            row.addEventListener('click', () => openNote(n._id));
+            row.addEventListener('click', () => {
+                openNote(n._id);
+                // Tutup sidebar otomatis di HP setelah memilih catatan
+                if (window.innerWidth < 640) toggleMenu();
+            });
             row.append(box, del);
             list.appendChild(row);
         });
     }
 
-    // ambil daftar dari server; kalau kolom cari terisi, server mencari di judul DAN isi
     async function loadNotes() {
         const q = $('search').value.trim();
         const res = await api('/notes' + (q ? '?q=' + encodeURIComponent(q) : ''));
@@ -263,7 +290,7 @@ tailwind.config = { theme: { extend: {
         renderList();
     }
 
-    // ---------- aksi catatan ----------
+    // ---------- Aksi Catatan ----------
     async function openNote(id) {
         try {
             const { data } = await api('/notes/' + id);
@@ -282,6 +309,7 @@ tailwind.config = { theme: { extend: {
         renderList();
         updateSize();
         $('title').focus();
+        if (window.innerWidth < 640) toggleMenu();
     }
 
     async function saveNote() {
@@ -329,7 +357,7 @@ tailwind.config = { theme: { extend: {
         } catch (e) { toast(e.message); }
     }
 
-    // ---------- event ----------
+    // ---------- Event ----------
     $('welcome').textContent = nama;
 
     $('logout-btn').addEventListener('click', async () => {
@@ -344,7 +372,6 @@ tailwind.config = { theme: { extend: {
     $('save-btn').addEventListener('click', saveNote);
     $('new-note-btn').addEventListener('click', newNote);
 
-    // pencarian: tunggu 300 ms setelah berhenti mengetik, baru tanya server
     let searchTimer;
     $('search').addEventListener('input', () => {
         clearTimeout(searchTimer);
@@ -354,7 +381,7 @@ tailwind.config = { theme: { extend: {
     $('title').addEventListener('input', updateSize);
     $('editor-body').addEventListener('input', updateSize);
 
-    // toolbar: mousedown di-preventDefault supaya seleksi teks tidak hilang
+    // Mencegah select teks hilang saat klik toolbar
     document.querySelectorAll('[data-cmd]').forEach((b) => {
         b.addEventListener('mousedown', (e) => e.preventDefault());
         b.addEventListener('click', () => {
@@ -364,15 +391,36 @@ tailwind.config = { theme: { extend: {
         });
     });
 
-    // Ctrl/Cmd + S = simpan
+    // Handle Keyboard Shortcuts (Ctrl+S, Ctrl+B, Ctrl+I, Ctrl+U)
     document.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-            e.preventDefault();
-            saveNote();
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const cmd = isMac ? e.metaKey : e.ctrlKey;
+
+        if (cmd) {
+            const key = e.key.toLowerCase();
+            if (key === 's') { 
+                e.preventDefault(); 
+                saveNote(); 
+            }
+            else if (key === 'b') { 
+                e.preventDefault(); 
+                document.execCommand('bold'); 
+                updateSize(); 
+            }
+            else if (key === 'i') { 
+                e.preventDefault(); 
+                document.execCommand('italic'); 
+                updateSize(); 
+            }
+            else if (key === 'u') { 
+                e.preventDefault(); 
+                document.execCommand('underline'); 
+                updateSize(); 
+            }
         }
     });
 
-    // ---------- init ----------
+    // ---------- Init ----------
     (async function init() {
         try {
             await loadNotes();
